@@ -23,11 +23,22 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Inicializar base de datos
-const db = new sqlite3.Database('./canchas.db', (err) => {
+const dbPath = process.env.NODE_ENV === 'production' ? '/tmp/canchas.db' : './canchas.db';
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error al conectar con la base de datos:', err.message);
+    console.error('Intentando crear base de datos en memoria...');
+    // Fallback a base de datos en memoria si hay problemas con el archivo
+    const memoryDb = new sqlite3.Database(':memory:', (memErr) => {
+      if (memErr) {
+        console.error('Error crítico con base de datos:', memErr.message);
+      } else {
+        console.log('Usando base de datos en memoria como fallback.');
+        initializeDatabase();
+      }
+    });
   } else {
-    console.log('Conectado a la base de datos SQLite.');
+    console.log('Conectado a la base de datos SQLite en:', dbPath);
     initializeDatabase();
   }
 });
